@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <title>Activities</title>
+
+  <!-- External assets used by the original page -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    :root {
+      --bg: #090b0f;
+      --surface: #10141a;
+      --surface-hover: #171c23;
+      --text: #f3f5f7;
+      --muted: #8b95a3;
+      --accent: #d9e1ea;
+      --line: #202731;
+      --shadow: rgba(0,0,0,.45);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Figtree", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      padding:
+        calc(84px + env(safe-area-inset-top, 0px))
+        20px
+        calc(30px + env(safe-area-inset-bottom, 0px));
+    }
+
+    main {
+      width: min(980px, 100%);
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(25px, 5vw, 34px);
+      font-weight: 600;
+      letter-spacing: -.035em;
+    }
+
+    #status {
+      color: var(--muted);
+      font-size: 14px;
+      padding: 40px 0;
+      text-align: center;
+    }
+
+    .activities-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+      gap: 24px 14px;
+    }
+
+    .activity {
+      appearance: none;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 9px;
+      color: inherit;
+      background: transparent;
+      cursor: pointer;
+      text-align: center;
+      font: inherit;
+    }
+
+    .cover {
+      width: 100%;
+      aspect-ratio: 1;
+      overflow: hidden;
+      border-radius: 18px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      box-shadow: 0 10px 25px var(--shadow);
+      transition: transform .16s ease, border-color .16s ease,
+                  box-shadow .16s ease;
+    }
+
+    .activity:hover .cover,
+    .activity:focus-visible .cover {
+      transform: translateY(-3px);
+      border-color: #3a4552;
+      box-shadow: 0 14px 30px var(--shadow);
+    }
+
+    .activity:active .cover {
+      transform: translateY(-1px) scale(.985);
+    }
+
+    .cover img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .name {
+      width: 100%;
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      transition: color .16s ease;
+    }
+
+    .activity:hover .name,
+    .activity:focus-visible .name {
+      color: var(--text);
+    }
+
+    button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+    }
+
+    /* Always-visible search overlay */
+    #searchOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10000;
+      display: flex;
+      justify-content: center;
+      padding: calc(12px + env(safe-area-inset-top, 0px)) 14px 12px;
+      pointer-events: none;
+    }
+
+    #activitySearch {
+      width: min(720px, 100%);
+      height: 46px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 14px;
+      outline: none;
+      padding: 0 16px 0 44px;
+      background: rgba(12,15,20,.88);
+      color: var(--text);
+      font: inherit;
+      font-size: 15px;
+      box-shadow: 0 10px 35px rgba(0,0,0,.38);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      pointer-events: auto;
+    }
+
+    #activitySearch::placeholder { color: #7f8996; }
+    #activitySearch:focus { border-color: rgba(255,255,255,.28); }
+
+    #searchOverlay.hidden {
+      display: none;
+    }
+
+    #searchOverlay .search-icon {
+      position: absolute;
+      left: max(calc((100% - 720px) / 2 + 16px), 30px);
+      top: calc(12px + env(safe-area-inset-top, 0px) + 14px);
+      color: #8993a0;
+      pointer-events: none;
+    }
+
+    /* Full-screen activity/embed view */
+    #viewer {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      background: #000;
+    }
+
+    #viewer.open { display: block; }
+
+    #browserFrame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #000;
+    }
+
+    #loading {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      background: #000;
+      color: #fff;
+      font-size: 14px;
+    }
+
+    #closeViewer {
+      position: absolute;
+      z-index: 4;
+      top: calc(14px + env(safe-area-inset-top, 0px));
+      left: 14px;
+      width: 42px;
+      height: 42px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 12px;
+      background: rgba(15,15,15,.78);
+      color: #fff;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    @media (max-width: 500px) {
+      body {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      .activities-grid {
+        grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+        gap: 19px 10px;
+      }
+
+      .cover {
+        border-radius: 15px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="searchOverlay" aria-label="Activity search">
+    <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
+    <input
+      id="activitySearch"
+      type="search"
+      placeholder="Search activities..."
+      autocomplete="off"
+      spellcheck="false"
+      aria-label="Search activities"
+    >
+  </div>
+
+  <main id="activitiesPage">
+    <header>
+      <h1>Activities</h1>
+    </header>
+
+    <div id="status">Loading activities...</div>
+    <div class="activities-grid" id="activitiesGrid"></div>
+  </main>
+
+  <section id="viewer" aria-label="Activity viewer">
+    <button id="closeViewer" type="button" aria-label="Close activity">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+
+    <iframe
+      id="browserFrame"
+      title="Embedded activity"
+      allow="autoplay; clipboard-read; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+      allowfullscreen>
+    </iframe>
+
+    <div id="loading">Loading activity...</div>
+  </section>
+
+  <script>
+  (() => {
+    /*
+     * Merged from the original g.js + index.html + e.js flow.
+     * The activity list still comes from the original zones.json endpoint.
+     */
+    const ZONES_URL =
+      "https://cdn.jsdelivr.net/gh/freebuisness/assets@main/zones.json";
+
+    const COVER_URL =
+      "https://cdn.jsdelivr.net/gh/freebuisness/covers@main";
+
+    const HTML_URL =
+      "https://cdn.jsdelivr.net/gh/freebuisness/html@main";
+
+    const WISP_URL =
+      localStorage.getItem("wispUrl") ||
+      "wss://g.novalee.xyz/wisp/";
+
+    const status = document.getElementById("status");
+    const grid = document.getElementById("activitiesGrid");
+    const viewer = document.getElementById("viewer");
+    const browserFrame = document.getElementById("browserFrame");
+    const loading = document.getElementById("loading");
+    const closeViewer = document.getElementById("closeViewer");
+    const activitySearch = document.getElementById("activitySearch");
+    const searchOverlay = document.getElementById("searchOverlay");
+    let allActivities = [];
+
+    function resolve(template, id) {
+      return template
+        .replace("{COVER_URL}", COVER_URL)
+        .replace("{HTML_URL}", HTML_URL);
+    }
+
+    function setLoading(text) {
+      loading.textContent = text;
+      loading.style.display = "flex";
+    }
+
+    function hideLoading() {
+      loading.style.display = "none";
+    }
+
+    /*
+     * This is the original e.js activity-loading behavior:
+     * fetch zones.json -> find activity -> resolve its HTML URL ->
+     * fetch the remote HTML -> replace the current document.
+     *
+     * For this single-file version we load that HTML into the activity
+     * viewer instead, so the activity grid remains available.
+     */
+    function patchGameHtml(html) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+
+      // Remove the actual sidebar ad containers from each loaded game.
+      doc.querySelectorAll("#sidebarad1, #sidebarad2").forEach(el => el.remove());
+
+      return "<!doctype html>\n" + doc.documentElement.outerHTML;
+    }
+
+    async function loadActivity(activityId) {
+      setLoading("Loading activity...");
+
+      const response = await fetch(ZONES_URL);
+      if (!response.ok) {
+        throw new Error("Couldn't load zones.json.");
+      }
+
+      const zones = await response.json();
+      const activity = zones.find(
+        item => String(item.id) === String(activityId)
+      );
+
+      if (!activity) {
+        throw new Error("Activity not found.");
+      }
+
+      if (!activity.url) {
+        throw new Error("Activity URL is missing.");
+      }
+
+      const activityUrl = activity.url.replace("{HTML_URL}", HTML_URL);
+
+      const activityResponse = await fetch(activityUrl);
+      if (!activityResponse.ok) {
+        throw new Error(
+          "Couldn't load activity (" + activityResponse.status + ")."
+        );
+      }
+
+      let html = await activityResponse.text();
+
+      // Patch loaded game pages before displaying them. This removes the
+      // sidebar ad containers from the actual game HTML without requiring
+      // changes to every individual game file.
+      html = patchGameHtml(html);
+
+      /*
+       * Use a Blob URL so the returned HTML can run as a document
+       * inside the iframe without changing this single-file page.
+       */
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+
+      browserFrame.onload = () => {
+        hideLoading();
+        URL.revokeObjectURL(url);
+      };
+
+      browserFrame.src = url;
+    }
+
+    /*
+     * Preserves the site-embedding branch from e.js when a site URL
+     * is supplied. This requires the same Scramjet globals that the
+     * original e.js expects to be present in the hosting environment.
+     */
+    async function waitForServiceWorker() {
+      const registration =
+        await navigator.serviceWorker.register("./sw.js", {
+          scope: "./",
+          updateViaCache: "none"
+        });
+
+      await navigator.serviceWorker.ready;
+
+      if (navigator.serviceWorker.controller) {
+        return navigator.serviceWorker.controller;
+      }
+
+      if (!registration.active) {
+        throw new Error("Scramjet service worker is not active.");
+      }
+
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(
+            new Error("Scramjet service worker did not take control.")
+          );
+        }, 10000);
+
+        navigator.serviceWorker.addEventListener(
+          "controllerchange",
+          () => {
+            clearTimeout(timeout);
+            resolve();
+          },
+          { once: true }
+        );
+      });
+
+      return navigator.serviceWorker.controller;
+    }
+
+    async function loadSite(siteUrl) {
+      setLoading("Loading site...");
+
+      if (!siteUrl) {
+        throw new Error("No site URL was specified.");
+      }
+
+      if (
+        typeof LibcurlTransport === "undefined" ||
+        typeof $scramjetController === "undefined"
+      ) {
+        throw new Error(
+          "The Scramjet runtime is not available in this standalone file."
+        );
+      }
+
+      const destination = new URL(siteUrl);
+      const serviceworker = await waitForServiceWorker();
+
+      const transport =
+        new LibcurlTransport.LibcurlClient({
+          websocket: WISP_URL
+        });
+
+      const controller =
+        new $scramjetController.Controller({
+          serviceworker,
+          transport,
+          config: {
+            prefix: new URL(
+              "edu/",
+              new URL(
+                window.$rootUrl ||
+                localStorage.getItem("rootUrl") ||
+                "/",
+                location.origin
+              )
+            ).pathname
+          }
+        });
+
+      await controller.wait();
+
+      const frame = controller.createFrame(browserFrame);
+      browserFrame.addEventListener("load", hideLoading, { once: true });
+      frame.go(destination.href);
+    }
+
+    function openViewer() {
+      viewer.classList.add("open");
+      searchOverlay.classList.add("hidden");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeViewerPanel() {
+      viewer.classList.remove("open");
+      searchOverlay.classList.remove("hidden");
+      document.body.style.overflow = "";
+      browserFrame.src = "about:blank";
+      hideLoading();
+    }
+
+    function renderActivities(zones, filterText = "") {
+      const query = filterText.trim().toLowerCase();
+      const activities = allActivities.filter(activity =>
+        !query || String(activity.name || "").toLowerCase().includes(query)
+      );
+      const fragment = document.createDocumentFragment();
+
+      for (const activity of activities) {
+        const button = document.createElement("button");
+        button.className = "activity";
+        button.type = "button";
+        button.title = activity.name;
+        button.setAttribute("aria-label", activity.name);
+
+        const cover = document.createElement("div");
+        cover.className = "cover";
+
+        const img = document.createElement("img");
+        img.src = resolve(activity.cover, activity.id);
+        img.alt = "";
+        img.loading = "lazy";
+
+        const name = document.createElement("span");
+        name.className = "name";
+        name.textContent = activity.name;
+
+        cover.appendChild(img);
+        button.appendChild(cover);
+        button.appendChild(name);
+
+        button.addEventListener("click", async () => {
+          openViewer();
+
+          try {
+            await loadActivity(activity.id);
+          } catch (error) {
+            console.error("Failed to load activity:", error);
+            loading.textContent = "Failed to load: " + error.message;
+          }
+        });
+
+        fragment.appendChild(button);
+      }
+
+      grid.replaceChildren(fragment);
+      status.style.display = "none";
+    }
+
+    async function loadActivities() {
+      try {
+        const response = await fetch(ZONES_URL);
+
+        if (!response.ok) {
+          throw new Error(
+            "Failed to load zones.json (" + response.status + ")"
+          );
+        }
+
+        const zones = await response.json();
+        allActivities = zones.filter(zone => zone.id >= 0);
+        renderActivities(allActivities);
+      } catch (error) {
+        console.error("Failed to load activities:", error);
+        status.textContent = "Couldn't load the activities list.";
+      }
+    }
+
+    activitySearch.addEventListener("input", () => {
+      renderActivities(allActivities, activitySearch.value);
+    });
+
+    closeViewer.addEventListener("click", closeViewerPanel);
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && viewer.classList.contains("open")) {
+        closeViewerPanel();
+      }
+    });
+
+    /*
+     * Also supports the original e.js URL contract:
+     * ?g=<activity id> or ?s=<site URL>
+     */
+    async function start() {
+      const params = new URLSearchParams(window.location.search);
+      const activityId = params.get("g");
+      const siteUrl = params.get("s");
+
+      if (activityId !== null) {
+        openViewer();
+
+        try {
+          await loadActivity(activityId);
+        } catch (error) {
+          console.error("Embed initialization failed:", error);
+          loading.textContent = "Failed to load: " + error.message;
+        }
+
+        return;
+      }
+
+      if (siteUrl !== null) {
+        openViewer();
+
+        try {
+          await loadSite(siteUrl);
+        } catch (error) {
+          console.error("Embed initialization failed:", error);
+          loading.textContent = "Failed to load: " + error.message;
+        }
+
+        return;
+      }
+
+      await loadActivities();
+    }
+
+    start();
+  })();
+  </script>
+</body>
+</html>
+

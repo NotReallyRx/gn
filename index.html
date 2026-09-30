@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <title>Activities</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    :root {
+      --bg: #090b0f;
+      --surface: #10141a;
+      --text: #f3f5f7;
+      --muted: #8b95a3;
+      --accent: #d9e1ea;
+      --line: #202731;
+      --shadow: rgba(0,0,0,.45);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Figtree", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      padding:
+        calc(84px + env(safe-area-inset-top, 0px))
+        20px
+        calc(30px + env(safe-area-inset-bottom, 0px));
+    }
+
+    main {
+      width: min(980px, 100%);
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(25px, 5vw, 34px);
+      font-weight: 600;
+      letter-spacing: -.035em;
+    }
+
+    #status {
+      color: var(--muted);
+      font-size: 14px;
+      padding: 40px 0;
+      text-align: center;
+    }
+
+    .activities-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+      gap: 24px 14px;
+    }
+
+    .activity {
+      appearance: none;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 9px;
+      color: inherit;
+      background: transparent;
+      cursor: pointer;
+      text-align: center;
+      font: inherit;
+    }
+
+    .cover {
+      width: 100%;
+      aspect-ratio: 1;
+      overflow: hidden;
+      border-radius: 18px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      box-shadow: 0 10px 25px var(--shadow);
+      transition: transform .16s ease, border-color .16s ease,
+                  box-shadow .16s ease;
+    }
+
+    .activity:hover .cover,
+    .activity:focus-visible .cover {
+      transform: translateY(-3px);
+      border-color: #3a4552;
+      box-shadow: 0 14px 30px var(--shadow);
+    }
+
+    .activity:active .cover {
+      transform: translateY(-1px) scale(.985);
+    }
+
+    .cover img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .name {
+      width: 100%;
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      transition: color .16s ease;
+    }
+
+    .activity:hover .name,
+    .activity:focus-visible .name {
+      color: var(--text);
+    }
+
+    button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+    }
+
+    #searchOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10000;
+      display: flex;
+      justify-content: center;
+      padding: calc(12px + env(safe-area-inset-top, 0px)) 14px 12px;
+      pointer-events: none;
+    }
+
+    #activitySearch {
+      width: min(720px, 100%);
+      height: 46px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 14px;
+      outline: none;
+      padding: 0 16px 0 44px;
+      background: rgba(12,15,20,.88);
+      color: var(--text);
+      font: inherit;
+      font-size: 15px;
+      box-shadow: 0 10px 35px rgba(0,0,0,.38);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      pointer-events: auto;
+    }
+
+    #activitySearch::placeholder { color: #7f8996; }
+    #activitySearch:focus { border-color: rgba(255,255,255,.28); }
+
+    #searchOverlay.hidden {
+      display: none;
+    }
+
+    #searchOverlay .search-icon {
+      position: absolute;
+      left: max(calc((100% - 720px) / 2 + 16px), 30px);
+      top: calc(12px + env(safe-area-inset-top, 0px) + 14px);
+      color: #8993a0;
+      pointer-events: none;
+    }
+
+    #viewer {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      background: #000;
+    }
+
+    #viewer.open { display: block; }
+
+    #browserFrame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #000;
+    }
+
+    #loading {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      background: #000;
+      color: #fff;
+      font-size: 14px;
+    }
+
+    #closeViewer {
+      position: absolute;
+      z-index: 4;
+      top: calc(14px + env(safe-area-inset-top, 0px));
+      left: 14px;
+      width: 42px;
+      height: 42px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 12px;
+      background: rgba(15,15,15,.78);
+      color: #fff;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    @media (max-width: 500px) {
+      body {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      .activities-grid {
+        grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+        gap: 19px 10px;
+      }
+
+      .cover {
+        border-radius: 15px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="searchOverlay" aria-label="Activity search">
+    <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
+    <input
+      id="activitySearch"
+      type="search"
+      placeholder="Search activities..."
+      autocomplete="off"
+      spellcheck="false"
+      aria-label="Search activities"
+    >
+  </div>
+
+  <main id="activitiesPage">
+    <header>
+      <h1>Activities</h1>
+    </header>
+
+    <div id="status">Loading activities...</div>
+    <div class="activities-grid" id="activitiesGrid"></div>
+  </main>
+
+  <section id="viewer" aria-label="Activity viewer">
+    <button id="closeViewer" type="button" aria-label="Close activity">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+
+    <iframe
+      id="browserFrame"
+      title="Embedded activity"
+      allow="autoplay; clipboard-read; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+      allowfullscreen>
+    </iframe>
+
+    <div id="loading">Loading activity...</div>
+  </section>
+
+  <script>
+  (() => {
+    const ZONES_URL =
+      "https://cdn.jsdelivr.net/gh/iamtherealtux/assets-gn@main/zones.json";
+    const COVER_URL =
+      "https://cdn.jsdelivr.net/gh/iamtherealtux/covers-gn@main";
+    const HTML_URL =
+      "https://cdn.jsdelivr.net/gh/iamtherealtux/html-gn@main";
+
+    const status = document.getElementById("status");
+    const grid = document.getElementById("activitiesGrid");
+    const viewer = document.getElementById("viewer");
+    const browserFrame = document.getElementById("browserFrame");
+    const loading = document.getElementById("loading");
+    const closeViewer = document.getElementById("closeViewer");
+    const activitySearch = document.getElementById("activitySearch");
+    const searchOverlay = document.getElementById("searchOverlay");
+    let allActivities = [];
+
+    function resolve(template) {
+      return template
+        .replace("{COVER_URL}", COVER_URL)
+        .replace("{HTML_URL}", HTML_URL);
+    }
+
+    function setLoading(text) {
+      loading.textContent = text;
+      loading.style.display = "flex";
+    }
+
+    function hideLoading() {
+      loading.style.display = "none";
+    }
+
+    function patchGameHtml(html) {
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      doc.querySelectorAll("#sidebarad1, #sidebarad2").forEach(el => el.remove());
+      return "<!doctype html>\n" + doc.documentElement.outerHTML;
+    }
+
+    async function loadActivity(activityId) {
+      setLoading("Loading activity...");
+
+      const response = await fetch(ZONES_URL);
+      if (!response.ok) {
+        throw new Error("Couldn't load zones.json.");
+      }
+
+      const zones = await response.json();
+      const activity = zones.find(
+        item => String(item.id) === String(activityId)
+      );
+
+      if (!activity) {
+        throw new Error("Activity not found.");
+      }
+
+      if (!activity.url) {
+        throw new Error("Activity URL is missing.");
+      }
+
+      const activityResponse = await fetch(resolve(activity.url));
+      if (!activityResponse.ok) {
+        throw new Error(
+          "Couldn't load activity (" + activityResponse.status + ")."
+        );
+      }
+
+      const html = patchGameHtml(await activityResponse.text());
+      const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+
+      browserFrame.onload = () => {
+        hideLoading();
+        URL.revokeObjectURL(url);
+      };
+
+      browserFrame.src = url;
+    }
+
+    function openViewer() {
+      viewer.classList.add("open");
+      searchOverlay.classList.add("hidden");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeViewerPanel() {
+      viewer.classList.remove("open");
+      searchOverlay.classList.remove("hidden");
+      document.body.style.overflow = "";
+      browserFrame.src = "about:blank";
+      hideLoading();
+    }
+
+    function renderActivities(filterText = "") {
+      const query = filterText.trim().toLowerCase();
+      const activities = allActivities.filter(activity =>
+        !query || String(activity.name || "").toLowerCase().includes(query)
+      );
+      const fragment = document.createDocumentFragment();
+
+      for (const activity of activities) {
+        const button = document.createElement("button");
+        button.className = "activity";
+        button.type = "button";
+        button.title = activity.name;
+        button.setAttribute("aria-label", activity.name);
+
+        const cover = document.createElement("div");
+        cover.className = "cover";
+
+        const img = document.createElement("img");
+        img.src = resolve(activity.cover);
+        img.alt = "";
+        img.loading = "lazy";
+
+        const name = document.createElement("span");
+        name.className = "name";
+        name.textContent = activity.name;
+
+        cover.appendChild(img);
+        button.appendChild(cover);
+        button.appendChild(name);
+
+        button.addEventListener("click", async () => {
+          openViewer();
+
+          try {
+            await loadActivity(activity.id);
+          } catch (error) {
+            console.error("Failed to load activity:", error);
+            loading.textContent = "Failed to load: " + error.message;
+          }
+        });
+
+        fragment.appendChild(button);
+      }
+
+      grid.replaceChildren(fragment);
+      status.style.display = "none";
+    }
+
+    async function loadActivities() {
+      try {
+        const response = await fetch(ZONES_URL);
+
+        if (!response.ok) {
+          throw new Error(
+            "Failed to load zones.json (" + response.status + ")"
+          );
+        }
+
+        const zones = await response.json();
+        allActivities = zones.filter(zone => zone.id >= 0);
+        renderActivities();
+      } catch (error) {
+        console.error("Failed to load activities:", error);
+        status.textContent = "Couldn't load the activities list.";
+      }
+    }
+
+    activitySearch.addEventListener("input", () => {
+      renderActivities(activitySearch.value);
+    });
+
+    closeViewer.addEventListener("click", closeViewerPanel);
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && viewer.classList.contains("open")) {
+        closeViewerPanel();
+      }
+    });
+
+    async function start() {
+      const activityId = new URLSearchParams(window.location.search).get("g");
+
+      if (activityId !== null) {
+        openViewer();
+
+        try {
+          await loadActivity(activityId);
+        } catch (error) {
+          console.error("Embed initialization failed:", error);
+          loading.textContent = "Failed to load: " + error.message;
+        }
+
+        return;
+      }
+
+      await loadActivities();
+    }
+
+    start();
+  })();
+  </script>
+</body>
+</html>
